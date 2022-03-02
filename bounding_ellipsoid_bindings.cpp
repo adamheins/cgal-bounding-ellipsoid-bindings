@@ -68,6 +68,16 @@ EllipsoidData bounding_ellipsoid(const double *data, const size_t n,
         }
     }
 
+    // Transpose the rotation matrix, such that the ellipsoid matrix A can be
+    // computed using A = R * D * R.T, where D = diag(lengths^2)^{-1}.
+    for (size_t i = 0; i < d; ++i) {
+        for (size_t j = 0; j < i; ++j) {
+            double temp = ellipsoid.rotation[i * d + j];
+            ellipsoid.rotation[i * d + j] = ellipsoid.rotation[j * d + i];
+            ellipsoid.rotation[j * d + i] = temp;
+        }
+    }
+
     return ellipsoid;
 }
 
