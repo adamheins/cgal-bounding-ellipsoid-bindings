@@ -23,14 +23,14 @@ struct EllipsoidData {
 
     EllipsoidData(const EllipsoidData &other) {
         center = other.center;
-        lengths = other.lengths;
+        radii = other.radii;
         rotation = other.rotation;
     }
 
     ~EllipsoidData() = default;
 
     std::vector<double> center;
-    std::vector<double> lengths;
+    std::vector<double> radii;
     std::vector<double> rotation;
 };
 
@@ -57,10 +57,10 @@ EllipsoidData bounding_ellipsoid(const double *data, const size_t n,
         ellipsoid.center.push_back(*c_it);
     }
 
-    // Copy axis lengths and directions
+    // Copy axis radii and directions
     AME::Axes_lengths_iterator axes = ame.axes_lengths_begin();
     for (size_t i = 0; i < d; ++i) {
-        ellipsoid.lengths.push_back(*axes++);
+        ellipsoid.radii.push_back(*axes++);
         for (AME::Axes_direction_coordinate_iterator d_it =
                  ame.axis_direction_cartesian_begin(i);
              d_it != ame.axis_direction_cartesian_end(i); ++d_it) {
@@ -69,7 +69,7 @@ EllipsoidData bounding_ellipsoid(const double *data, const size_t n,
     }
 
     // Transpose the rotation matrix, such that the ellipsoid matrix A can be
-    // computed using A = R * D * R.T, where D = diag(lengths^2)^{-1}.
+    // computed using A = R * D * R.T, where D = diag(radii^2)^{-1}.
     for (size_t i = 0; i < d; ++i) {
         for (size_t j = 0; j < i; ++j) {
             double temp = ellipsoid.rotation[i * d + j];
@@ -111,32 +111,32 @@ static PyObject *bounding_ellipsoid_python(PyObject *self, PyObject *args) {
     npy_intp mat_dims[] = {d, d};
     PyObject *center_array = PyArray_SimpleNewFromData(
         1, vec_dims, NPY_DOUBLE, ellipsoid->center.data());
-    PyObject *lengths_array = PyArray_SimpleNewFromData(
-        1, vec_dims, NPY_DOUBLE, ellipsoid->lengths.data());
+    PyObject *radii_array = PyArray_SimpleNewFromData(
+        1, vec_dims, NPY_DOUBLE, ellipsoid->radii.data());
     PyObject *rotation_array = PyArray_SimpleNewFromData(
         2, mat_dims, NPY_DOUBLE, ellipsoid->rotation.data());
 
     // Return a tuple of ellipsoid data
     PyObject *res = PyTuple_New(3);
     PyTuple_SetItem(res, 0, center_array);
-    PyTuple_SetItem(res, 1, lengths_array);
+    PyTuple_SetItem(res, 1, radii_array);
     PyTuple_SetItem(res, 2, rotation_array);
     return res;
 }
 
-static PyMethodDef EllipsoidMethods[] = {
+static PyMethodDef BoundingEllipsoidMethods[] = {
     {"bounding_ellipsoid", bounding_ellipsoid_python, METH_VARARGS,
      "Compute the approximate smallest enclosing ellipsoid for a set of "
      "points."},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-static struct PyModuleDef ellipsoidmodule = {
+static struct PyModuleDef bounding_ellipsoid_module = {
     PyModuleDef_HEAD_INIT, "bounding_ellipsoid",
     "Compute the approximate smallest enclosing ellipsoid for a set of points.",
-    -1, EllipsoidMethods};
+    -1, BoundingEllipsoidMethods};
 
 PyMODINIT_FUNC PyInit_bounding_ellipsoid(void) {
     import_array();
-    return PyModule_Create(&ellipsoidmodule);
+    return PyModule_Create(&bounding_ellipsoid_module);
 }
