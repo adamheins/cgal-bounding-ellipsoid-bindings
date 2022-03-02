@@ -1,1 +1,3 @@
-ellipsoid
+build/
+dist/
+*.egg-info
